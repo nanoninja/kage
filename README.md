@@ -219,6 +219,39 @@ The router wraps `http.ResponseWriter` to allow middlewares to access response d
 * **`rw.Written()`**: Returns `true` if headers have been sent.
 * **`rw.Unwrap()`**: Access the underlying `http.ResponseWriter`. This is essential for **WebSockets**, **SSE**, and **http.ResponseController** compatibility.
 
+## Graceful Shutdown
+
+Kage provides a built-in helper to manage your server's lifecycle, ensuring that active connections are finished before the application exits (ideal for Docker/Kubernetes).
+
+```go
+func main() {
+    r := kage.New()
+    srv := &http.Server{
+        Addr:    ":8080",
+        Handler: r,
+    }
+
+    // ServeGraceful handles SIGINT/SIGTERM and shuts down the server 
+    // within the provided timeout (e.g., 10 seconds).
+    err := kage.ServeGraceful(srv, srv.ListenAndServe, 10*time.Second)
+    
+    if err != nil && err != http.ErrServerClosed {
+        log.Fatalf("Server error: %v", err)
+    }
+}
+```
+
+### Why use a Runner?
+
+By using a `ServerRunner` function, you can easily switch between standard HTTP and TLS without changing the logic:
+
+```go
+// For TLS (HTTPS)
+kage.ServeGraceful(srv, func() error {
+    return srv.ListenAndServeTLS("cert.pem", "key.pem")
+}, 10*time.Second)
+```
+
 ## License
 
 Copyright 2026 The Kage Authors. All rights reserved.
