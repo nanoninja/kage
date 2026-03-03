@@ -1,0 +1,81 @@
+// Copyright 2026 The Nanoninja Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package kage
+
+import (
+	"net/http"
+	"strings"
+)
+
+func (r *router) Handle(pattern string, h http.Handler) {
+	p, method := pattern, ""
+
+	if before, after, ok := strings.Cut(pattern, " "); ok {
+		method = before
+		p = after
+	}
+
+	path := r.wrapPath(p)
+
+	if method != "" {
+		path = method + " " + path
+	}
+
+	r.mux.Handle(path, r.chain(h))
+}
+
+func (r *router) HandleFunc(pattern string, h http.HandlerFunc) {
+	r.Handle(pattern, h)
+}
+
+func (r *router) Method(method, pattern string, h http.Handler) {
+	r.mux.Handle(method+" "+r.wrapPath(pattern), r.chain(h))
+}
+
+func (r *router) MethodFunc(method, pattern string, h http.HandlerFunc) {
+	r.Method(method, pattern, h)
+}
+
+func (r *router) Connect(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodConnect, pattern, h)
+}
+
+func (r *router) Delete(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodDelete, pattern, h)
+}
+
+func (r *router) Get(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodGet, pattern, h)
+}
+
+func (r *router) Head(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodHead, pattern, h)
+}
+
+func (r *router) Options(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodOptions, pattern, h)
+}
+
+func (r *router) Patch(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodPatch, pattern, h)
+}
+
+func (r *router) Post(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodPost, pattern, h)
+}
+
+func (r *router) Put(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodPut, pattern, h)
+}
+
+func (r *router) Trace(pattern string, h http.HandlerFunc) {
+	r.Method(http.MethodTrace, pattern, h)
+}
+
+func (r *router) NotFound(h http.HandlerFunc) {
+	r.mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		h.ServeHTTP(w, req)
+	})
+}
