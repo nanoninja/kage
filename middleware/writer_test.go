@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package kage
+package middleware
 
 import (
 	"net/http"
@@ -10,16 +10,16 @@ import (
 	"testing"
 )
 
-func TestResponseWriter(t *testing.T) {
+func TestWrapResponseWriter(t *testing.T) {
 	tests := []struct {
 		name            string
-		action          func(rw *responseWriter)
+		action          func(rw *WrapResponseWriter)
 		expectedStatus  int
 		expectedWritten bool
 	}{
 		{
 			name: "capture explicit status code",
-			action: func(rw *responseWriter) {
+			action: func(rw *WrapResponseWriter) {
 				rw.WriteHeader(http.StatusCreated)
 			},
 			expectedStatus:  http.StatusCreated,
@@ -27,7 +27,7 @@ func TestResponseWriter(t *testing.T) {
 		},
 		{
 			name: "default status code is 200 on write",
-			action: func(rw *responseWriter) {
+			action: func(rw *WrapResponseWriter) {
 				_, err := rw.Write([]byte("hello"))
 				if err != nil {
 					t.Fatalf("Failed to write: %v", err)
@@ -38,7 +38,7 @@ func TestResponseWriter(t *testing.T) {
 		},
 		{
 			name: "written returns true after writeheader",
-			action: func(rw *responseWriter) {
+			action: func(rw *WrapResponseWriter) {
 				rw.WriteHeader(http.StatusNoContent)
 			},
 			expectedStatus:  http.StatusNoContent,
@@ -46,7 +46,7 @@ func TestResponseWriter(t *testing.T) {
 		},
 		{
 			name: "writeheader should only record the first call",
-			action: func(rw *responseWriter) {
+			action: func(rw *WrapResponseWriter) {
 				rw.WriteHeader(http.StatusAccepted)
 				rw.WriteHeader(http.StatusBadRequest)
 			},
@@ -55,7 +55,7 @@ func TestResponseWriter(t *testing.T) {
 		},
 		{
 			name: "capture headers correctly",
-			action: func(rw *responseWriter) {
+			action: func(rw *WrapResponseWriter) {
 				rw.Unwrap().Header().Set("X-Nanoninja", "Test")
 				rw.WriteHeader(http.StatusOK)
 			},
@@ -67,7 +67,7 @@ func TestResponseWriter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
-			rw := newResponseWriter(rec)
+			rw := NewWrapResponseWriter(rec)
 
 			tt.action(rw)
 
@@ -84,7 +84,7 @@ func TestResponseWriter(t *testing.T) {
 
 func TestResponseWriter_New(t *testing.T) {
 	rec := httptest.NewRecorder()
-	rw := newResponseWriter(rec)
+	rw := NewWrapResponseWriter(rec)
 
 	if rw.Status() != http.StatusOK {
 		t.Errorf("Initial Status(): got %d, want %d", rw.Status(), http.StatusOK)
@@ -102,7 +102,7 @@ func TestResponseWriter_New(t *testing.T) {
 func TestResponseWriter_Unwrap(t *testing.T) {
 	t.Run("transparency for ResponseController", func(t *testing.T) {
 		rec := httptest.NewRecorder()
-		rw := newResponseWriter(rec)
+		rw := NewWrapResponseWriter(rec)
 
 		rc := http.NewResponseController(rw)
 		err := rc.Flush()

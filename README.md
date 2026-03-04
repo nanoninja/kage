@@ -37,6 +37,7 @@ import (
     "net/http"
     "os"
     "github.com/nanoninja/kage"
+    "github.com/nanoninja/kage/middleware"
 )
 
 func main() {
@@ -48,8 +49,8 @@ func main() {
     )
 
     // Global Middlewares
-    r.Use(kage.Recoverer(logger, nil))
-    r.Use(kage.Logger(logger))
+    r.Use(middleware.Recoverer(logger, nil))
+    r.Use(middleware.Logger(logger))
 
     // Simple Route
     r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -192,7 +193,7 @@ r.Group("/api", func(api kage.Router) {
 
 ## Middlewares
 
-Middlewares follow a **First In, First Out (FIFO)** execution order.
+Middlewares follow a **First In, First Out (FIFO)** execution order. Kage provides essential middlewares in a dedicated sub-package to keep the core router lean.
 
 ### Built-in Middlewares
 
@@ -213,7 +214,27 @@ r.With(AuthMiddleware).Get("/private", handlePrivate)
 
 ## Advanced: Response Instrumentation
 
-The router wraps `http.ResponseWriter` to allow middlewares to access response data:
+Kage includes a public `WrapResponseWriter` in the `middleware` package. This allows both built-in and custom middlewares to access response metadata that is normally hidden by the standard `http.ResponseWriter`.
+
+### Using the Wrapper
+
+If you are building a custom middleware, you can use the wrapper to capture the status code:
+
+```go
+func MyCustomMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Wrap the response writer
+        ww := middleware.NewWrapResponseWriter(w)
+        
+        next.ServeHTTP(ww, r)
+        
+        // Access captured data
+        status := ww.Status() 
+    })
+}
+```
+
+### Key Methods
 
 * **`rw.Status()`**: Returns the captured HTTP status code.
 * **`rw.Written()`**: Returns `true` if headers have been sent.
