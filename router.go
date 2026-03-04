@@ -41,8 +41,6 @@ func WithPrefix(prefix string) Option {
 type Router interface {
 	http.Handler
 
-	ServeHTTP(http.ResponseWriter, *http.Request)
-
 	// Handle registers a new route with a handler for the given pattern.
 	Handle(pattern string, h http.Handler)
 
