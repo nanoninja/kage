@@ -2,38 +2,38 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package kage
+package middleware
 
 import "net/http"
 
-// responseWriter is a wrapper around http.ResponseWriter that captures
+// WrapResponseWriter is a wrapper around http.WrapResponseWriter that captures
 // the HTTP status code and tracks if headers have been written.
-type responseWriter struct {
+type WrapResponseWriter struct {
 	http.ResponseWriter
 	status      int
 	wroteHeader bool
 }
 
-// newResponseWriter creates a new responseWriter with a default status of 200 OK.
-func newResponseWriter(w http.ResponseWriter) *responseWriter {
-	return &responseWriter{
+// NewWrapResponseWriter creates a new responseWriter with a default status of 200 OK.
+func NewWrapResponseWriter(w http.ResponseWriter) *WrapResponseWriter {
+	return &WrapResponseWriter{
 		ResponseWriter: w,
 		status:         http.StatusOK,
 	}
 }
 
 // Status returns the captured HTTP status code.
-func (rw *responseWriter) Status() int {
+func (rw *WrapResponseWriter) Status() int {
 	return rw.status
 }
 
 // Written returns true if the HTTP response headers have been sent.
-func (rw *responseWriter) Written() bool {
+func (rw *WrapResponseWriter) Written() bool {
 	return rw.wroteHeader
 }
 
 // WriteHeader captures the status code and delegates to the underlying ResponseWriter.
-func (rw *responseWriter) WriteHeader(code int) {
+func (rw *WrapResponseWriter) WriteHeader(code int) {
 	if !rw.wroteHeader {
 		rw.status = code
 		rw.wroteHeader = true
@@ -42,7 +42,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 // Write ensures that WriteHeader is called with http.StatusOK if it hasn't been called yet.
-func (rw *responseWriter) Write(b []byte) (int, error) {
+func (rw *WrapResponseWriter) Write(b []byte) (int, error) {
 	if !rw.wroteHeader {
 		rw.WriteHeader(http.StatusOK)
 	}
@@ -52,6 +52,6 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 // Unwrap returns the underlying ResponseWriter.
 // This is essential for http.ResponseController to access advanced features
 // like Hijack or Flush through the wrapper.
-func (rw *responseWriter) Unwrap() http.ResponseWriter {
+func (rw *WrapResponseWriter) Unwrap() http.ResponseWriter {
 	return rw.ResponseWriter
 }

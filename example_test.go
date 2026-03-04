@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nanoninja/kage"
+	"github.com/nanoninja/kage/middleware"
 )
 
 // Example showing how to initialize the router and add a basic route.
@@ -35,7 +36,7 @@ func ExampleRouter_With() {
 	r := kage.New()
 
 	// Only this specific route will use the Logger
-	r.With(kage.Logger(nil)).Get("/private", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.Logger(nil)).Get("/private", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Authenticated access")
 	})
 }
