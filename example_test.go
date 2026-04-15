@@ -111,6 +111,29 @@ func ExampleRouter_Routes() {
 	// POST /api/v1/users
 }
 
+// Example showing how to assign and retrieve a unique request ID.
+func ExampleRequestID() {
+	r := kage.New()
+
+	r.Use(middleware.RequestID)
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		id := middleware.GetRequestID(r)
+		_, _ = fmt.Fprint(w, id)
+	})
+}
+
+// Example showing how to enable gzip/deflate response compression.
+func ExampleCompress() {
+	r := kage.New()
+
+	r.Use(middleware.Compress)
+
+	r.Get("/data", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, `{"message":"hello"}`)
+	})
+}
+
 // Example showing a complete setup with middlewares, groups, and graceful shutdown.
 func ExampleServeGraceful() {
 	r := kage.New(kage.WithPrefix("/api"))
