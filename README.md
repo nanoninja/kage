@@ -5,7 +5,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.22%2B-00ADD8.svg?style=flat&logo=go)](https://github.com/nanoninja/kage)
 [![Go Reference](https://pkg.go.dev/badge/github.com/nanoninja/kage.svg)](https://pkg.go.dev/github.com/nanoninja/kage)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nanoninja/kage)](https://goreportcard.com/report/github.com/nanoninja/kage)
-[![Tests](https://github.com/nanoninja/kage/actions/workflows/ci.yaml/badge.svg)](https://github.com/nanoninja/kage/actions/workflows/ci.yaml)
+[![CI](https://github.com/nanoninja/kage/actions/workflows/ci.yaml/badge.svg)](https://github.com/nanoninja/kage/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/nanoninja/kage/branch/main/graph/badge.svg)](https://codecov.io/gh/nanoninja/kage)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 
