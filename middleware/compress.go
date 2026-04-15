@@ -40,11 +40,7 @@ func Compress(next http.Handler) http.Handler {
 			_ = gz.Close()
 
 		case strings.Contains(encoding, "deflate"):
-			fl, err := flate.NewWriter(w, flate.DefaultCompression)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
+			fl, _ := flate.NewWriter(w, flate.DefaultCompression)
 
 			w.Header().Set("Content-Encoding", "deflate")
 			w.Header().Del("Content-Length")
