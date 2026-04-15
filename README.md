@@ -250,10 +250,15 @@ r.With(rateLimitMiddleware).Post("/login", handleLogin)
 
 ### Logger
 
-Logs method, path, status code, and duration using `slog`. Accepts a custom `*slog.Logger` or `nil` for the default.
+Logs method, path, status code, and duration using `slog`.
 
 ```go
+// Default slog logger
 r.Use(middleware.Logger(nil))
+
+// Custom logger
+logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+r.Use(middleware.Logger(logger))
 ```
 
 ### Recoverer
@@ -264,7 +269,7 @@ Recovers from panics and logs the error. Accepts an optional `onFailure` handler
 // Default: 500 Internal Server Error
 r.Use(middleware.Recoverer(nil, nil))
 
-// Custom JSON error
+// Custom logger + custom JSON error
 r.Use(middleware.Recoverer(logger, func(w http.ResponseWriter, r *http.Request, err any) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusInternalServerError)
