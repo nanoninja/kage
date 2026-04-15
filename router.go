@@ -80,6 +80,17 @@ type Router interface {
 	// Use appends one or more middlewares to the router's global middleware stack.
 	Use(...func(http.Handler) http.Handler)
 
+	// Route registers multiple HTTP methods on a single fixed path.
+	//
+	// Example:
+	//
+	//	r.Route("/users/{id}", func(rt kage.Route) {
+	//	    rt.Get(getUser)
+	//	    rt.Put(updateUser)
+	//	    rt.Delete(deleteUser)
+	//	})
+	Route(pattern string, fn func(Route))
+
 	// With returns a new Router instance that includes the provided middlewares
 	// in addition to the existing ones. Perfect for method chaining.
 	With(middlewares ...func(http.Handler) http.Handler) Router

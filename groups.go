@@ -29,6 +29,18 @@ func (r *router) Mount(prefix string, h http.Handler) {
 	r.mux.Handle(pattern, http.StripPrefix(strings.TrimRight(fullPath, "/"), r.chain(h)))
 }
 
+// Route creates a new Route for the given pattern, allowing multiple
+// HTTP methods to be registered on the same path without repetition.
+func (r *router) Route(pattern string, fn func(Route)) {
+	rt := &route{
+		pattern: pattern,
+		r:       r,
+	}
+	if fn != nil {
+		fn(rt)
+	}
+}
+
 // Use appends the given middlewares to the router's middleware stack.
 func (r *router) Use(middlewares ...func(http.Handler) http.Handler) {
 	r.middlewares = append(r.middlewares, middlewares...)
