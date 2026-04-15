@@ -4,10 +4,7 @@
 
 package kage
 
-import (
-	"net/http"
-	"strings"
-)
+import "net/http"
 
 // Option defines a function type for configuring the router.
 type Option func(*router)
@@ -97,22 +94,6 @@ type Router interface {
 
 	// NotFound registers a custom handler for 404 Not Found errors.
 	NotFound(h http.HandlerFunc)
-
-	// Static registers a route to serve static files from a local directory.
-	// It automatically handles path prefix stripping and subtree matching
-	// using the Go 1.22+ "{path...}" wildcard.
-	//
-	// Example:
-	//   r.Static("/static", "./public")
-	Static(prefix, root string)
-
-	// StaticFS registers a route to serve static files from an http.FileSystem.
-	// This is particularly useful for serving files embedded in the binary
-	// using the 'embed' package.
-	//
-	// Example:
-	//   r.StaticFS("/assets", http.FS(embeddedFiles))
-	StaticFS(prefix string, fsys http.FileSystem)
 }
 
 // New creates a new Router instance with optional configurations.
@@ -136,23 +117,4 @@ type router struct {
 
 func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.mux.ServeHTTP(w, req)
-}
-
-// StaticFS registers a route to serve static files from an http.FileSystem.
-// It automatically handles prefix stripping and wildcard routing.
-func (r *router) StaticFS(prefix string, fsys http.FileSystem) {
-	fullPath := r.wrapPath(prefix)
-
-	pattern := fullPath
-	if !strings.HasSuffix(pattern, "/") {
-		pattern += "/"
-	}
-	pattern += "{path...}"
-	handler := http.StripPrefix(fullPath, http.FileServer(fsys))
-
-	r.mux.Handle("GET "+pattern, r.chain(handler))
-}
-
-func (r *router) Static(prefix, root string) {
-	r.StaticFS(prefix, http.Dir(root))
 }

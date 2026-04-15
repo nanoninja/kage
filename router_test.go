@@ -165,7 +165,7 @@ func TestRouter_MiddlewareOrder(t *testing.T) {
 	}
 }
 
-func TestStatic(t *testing.T) {
+func TestFileServerFS(t *testing.T) {
 	mockFS := fstest.MapFS{
 		"test.txt":      {Data: []byte("hello world")},
 		"css/style.css": {Data: []byte("body {}")},
@@ -174,7 +174,7 @@ func TestStatic(t *testing.T) {
 	r := New()
 
 	r.Group("/api", func(api Router) {
-		api.StaticFS("/assets", http.FS(mockFS))
+		api.Mount("/assets", FileServerFS(http.FS(mockFS)))
 	})
 
 	tests := []struct {
@@ -225,15 +225,15 @@ func TestStatic(t *testing.T) {
 	}
 }
 
-func TestStatic_LocalFolder(t *testing.T) {
+func TestFileServer(t *testing.T) {
 	r := New()
 
 	t.Run("Should not panic on registration", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
-				t.Errorf("Static panicked: %v", r)
+				t.Errorf("FileServer panicked: %v", r)
 			}
 		}()
-		r.Static("/tmp-test", "./")
+		r.Mount("/tmp-test", FileServer("./"))
 	})
 }

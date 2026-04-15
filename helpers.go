@@ -23,6 +23,26 @@ func Param(r *http.Request, key string) string {
 	return r.PathValue(key)
 }
 
+// FileServer returns an http.Handler that serves static files
+// from the given local directory. Designed to be used with Mount.
+//
+// Example:
+//
+//	r.Mount("/assets", kage.FileServer("./public"))
+func FileServer(root string) http.Handler {
+	return http.FileServer(http.Dir(root))
+}
+
+// FileServerFS returns an http.Handler that serves static files
+// from the given http.FileSystem. Useful with Go's embed package.
+//
+// Example:
+//
+//	r.Mount("/assets", kage.FileServerFS(http.FS(embeddedFiles)))
+func FileServerFS(fsys http.FileSystem) http.Handler {
+	return http.FileServer(fsys)
+}
+
 // chain wraps the given http.Handler with all registered middlewares
 // in the correct order (FIFO).
 func (r *router) chain(h http.Handler) http.Handler {

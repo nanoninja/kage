@@ -208,13 +208,13 @@ r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 
 ## Static Files
 
-Kage handles static file serving by automatically calculating the correct prefix to strip, even when routes are nested within multiple groups.
+Kage provides `FileServer` and `FileServerFS` helper functions that return an `http.Handler` ready to be used with `Mount`. The prefix stripping is handled automatically.
 
 ### Local Directory
 
 ```go
 // Files in "./public" are available at http://localhost:8080/assets/*
-r.Static("/assets", "./public")
+r.Mount("/assets", kage.FileServer("./public"))
 ```
 
 ### Embedded Files (Go Embed)
@@ -225,7 +225,7 @@ var embedFS embed.FS
 
 // Re-root to hide the dist/ folder from URLs
 subFS, _ := fs.Sub(embedFS, "dist")
-r.StaticFS("/static", http.FS(subFS))
+r.Mount("/static", kage.FileServerFS(http.FS(subFS)))
 ```
 
 ## Middlewares

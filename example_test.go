@@ -72,6 +72,26 @@ func ExampleRouter_Mount() {
 	r.Mount("/users", users)
 }
 
+// Example showing how to serve static files from a local directory.
+func ExampleFileServer() {
+	r := kage.New()
+
+	// Files in "./public" are served at /assets/*
+	r.Mount("/assets", kage.FileServer("./public"))
+}
+
+// Example showing how to serve static files from an http.FileSystem.
+func ExampleFileServerFS() {
+	r := kage.New()
+
+	// Useful with Go's embed package:
+	// //go:embed dist/*
+	// var embeddedFiles embed.FS
+	// r.Mount("/assets", kage.FileServerFS(http.FS(embeddedFiles)))
+
+	r.Mount("/assets", kage.FileServerFS(http.Dir("./public")))
+}
+
 // Example showing a complete setup with middlewares, groups, and graceful shutdown.
 func ExampleServeGraceful() {
 	r := kage.New(kage.WithPrefix("/api"))
