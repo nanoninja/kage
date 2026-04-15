@@ -68,6 +68,15 @@ type Router interface {
 	// All routes registered within the provided function will inherit this prefix.
 	Group(prefix string, fn func(Router))
 
+	// Mount attaches an http.Handler at the given prefix.
+	// The mounted handler receives requests with the prefix stripped from the path.
+	//
+	// Example:
+	//   sub := kage.New()
+	//   sub.Get("/users", listUsers)
+	//   r.Mount("/api", sub)
+	Mount(prefix string, h http.Handler)
+
 	// Use appends one or more middlewares to the router's global middleware stack.
 	Use(...func(http.Handler) http.Handler)
 

@@ -4,7 +4,10 @@
 
 package kage
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // Group creates a new router group with the given prefix and optional middlewares.
 // It executes the provided callback function with the new group.
@@ -15,6 +18,15 @@ func (r *router) Group(prefix string, fn func(Router)) {
 	if fn != nil {
 		fn(g)
 	}
+}
+
+// Mount attaches an http.Handler at the given prefix.
+// The mounted handler receives requests with the prefix stripped from the path.
+func (r *router) Mount(prefix string, h http.Handler) {
+	fullPath := r.wrapPath(prefix)
+	pattern := strings.TrimRight(fullPath, "/") + "/"
+
+	r.mux.Handle(pattern, http.StripPrefix(strings.TrimRight(fullPath, "/"), r.chain(h)))
 }
 
 // Use appends the given middlewares to the router's middleware stack.

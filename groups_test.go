@@ -83,6 +83,106 @@ func TestRouter_Group(t *testing.T) {
 	})
 }
 
+func TestRouter_Mount(t *testing.T) {
+	t.Run("mounted handler receives stripped path", func(t *testing.T) {
+		sub := New()
+		sub.Get("/users", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r := New()
+		r.Mount("/api", sub)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/users", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("parent middleware chain is applied to mounted handler", func(t *testing.T) {
+		var mwCalled bool
+
+		sub := New()
+		sub.Get("/hello", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r := New()
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				mwCalled = true
+				next.ServeHTTP(w, req)
+			})
+		})
+		r.Mount("/svc", sub)
+
+		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/svc/hello", nil))
+
+		if !mwCalled {
+			t.Error("parent middleware should be applied to the mounted handler")
+		}
+	})
+
+	t.Run("mount plain http.Handler", func(t *testing.T) {
+		plain := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusAccepted)
+		})
+
+		r := New()
+		r.Mount("/plain", plain)
+
+		req := httptest.NewRequest(http.MethodGet, "/plain/anything", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusAccepted {
+			t.Errorf("expected 202, got %d", rec.Code)
+		}
+	})
+
+	t.Run("mount inside a group inherits prefix", func(t *testing.T) {
+		sub := New()
+		sub.Get("/ping", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r := New()
+		r.Group("/v1", func(v1 Router) {
+			v1.Mount("/health", sub)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/v1/health/ping", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+	})
+
+	t.Run("mounted sub-router does not leak routes to parent", func(t *testing.T) {
+		sub := New()
+		sub.Get("/secret", func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		r := New()
+		r.Mount("/sub", sub)
+
+		// Accessing the route without the mount prefix should 404
+		req := httptest.NewRequest(http.MethodGet, "/secret", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected 404 for unmounted path, got %d", rec.Code)
+		}
+	})
+}
+
 func TestRouter_With(t *testing.T) {
 	t.Run("Create branch with extra middleware without affecting parent", func(t *testing.T) {
 		var trace string
