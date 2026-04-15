@@ -19,7 +19,7 @@ func TestRecoverer(t *testing.T) {
 		l := slog.New(slog.NewTextHandler(&buf, nil))
 
 		mw := Recoverer(l, nil)
-		handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := mw(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 			panic("unexpected crash")
 		}))
 
@@ -38,14 +38,14 @@ func TestRecoverer(t *testing.T) {
 
 	t.Run("custom recovery handler", func(t *testing.T) {
 		customCalled := false
-		handlerFunc := func(w http.ResponseWriter, r *http.Request, err any) {
+		handlerFunc := func(w http.ResponseWriter, _ *http.Request, _ any) {
 			customCalled = true
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = w.Write([]byte("service down"))
 		}
 
 		mw := Recoverer(nil, handlerFunc)
-		handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := mw(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 			panic("boom")
 		}))
 
