@@ -32,12 +32,12 @@ func Compress(next http.Handler) http.Handler {
 		switch {
 		case strings.Contains(encoding, "gzip"):
 			gz := gzip.NewWriter(w)
-			defer gz.Close()
 
 			w.Header().Set("Content-Encoding", "gzip")
 			w.Header().Del("Content-Length")
 
 			next.ServeHTTP(&compressWriter{ResponseWriter: w, writer: gz}, r)
+			_ = gz.Close()
 
 		case strings.Contains(encoding, "deflate"):
 			fl, err := flate.NewWriter(w, flate.DefaultCompression)
@@ -45,12 +45,12 @@ func Compress(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			defer fl.Close()
 
 			w.Header().Set("Content-Encoding", "deflate")
 			w.Header().Del("Content-Length")
 
 			next.ServeHTTP(&compressWriter{ResponseWriter: w, writer: fl}, r)
+			_ = fl.Close()
 
 		default:
 			next.ServeHTTP(w, r)
