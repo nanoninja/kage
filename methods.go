@@ -22,7 +22,9 @@ func (r *router) HandleFunc(pattern string, h http.HandlerFunc) {
 }
 
 func (r *router) Method(method, pattern string, h http.Handler) {
-	r.mux.Handle(method+" "+r.wrapPath(pattern), r.chain(h))
+	path := r.wrapPath(pattern)
+	r.mux.Handle(method+" "+path, r.chain(h))
+	*r.routes = append(*r.routes, RouteInfo{Method: method, Pattern: path})
 }
 
 func (r *router) MethodFunc(method, pattern string, h http.HandlerFunc) {
@@ -63,6 +65,10 @@ func (r *router) Put(pattern string, h http.HandlerFunc) {
 
 func (r *router) Trace(pattern string, h http.HandlerFunc) {
 	r.Method(http.MethodTrace, pattern, h)
+}
+
+func (r *router) Routes() []RouteInfo {
+	return *r.routes
 }
 
 func (r *router) NotFound(h http.HandlerFunc) {

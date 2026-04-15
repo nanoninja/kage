@@ -65,6 +65,7 @@ func (r *router) clone() *router {
 	return &router{
 		prefix:             r.prefix,
 		mux:                r.mux,
+		routes:             r.routes,
 		middlewares:        mws,
 		notFoundRegistered: r.notFoundRegistered,
 	}

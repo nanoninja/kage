@@ -92,6 +92,25 @@ func ExampleFileServerFS() {
 	r.Mount("/assets", kage.FileServerFS(http.Dir("./public")))
 }
 
+// Example showing how to inspect all registered routes.
+func ExampleRouter_Routes() {
+	r := kage.New(kage.WithPrefix("/api"))
+
+	r.Get("/health", func(_ http.ResponseWriter, _ *http.Request) {})
+	r.Group("/v1", func(v1 kage.Router) {
+		v1.Get("/users", func(_ http.ResponseWriter, _ *http.Request) {})
+		v1.Post("/users", func(_ http.ResponseWriter, _ *http.Request) {})
+	})
+
+	for _, route := range r.Routes() {
+		fmt.Printf("%s %s\n", route.Method, route.Pattern)
+	}
+	// Output:
+	// GET /api/health
+	// GET /api/v1/users
+	// POST /api/v1/users
+}
+
 // Example showing a complete setup with middlewares, groups, and graceful shutdown.
 func ExampleServeGraceful() {
 	r := kage.New(kage.WithPrefix("/api"))

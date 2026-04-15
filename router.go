@@ -34,6 +34,13 @@ func WithPrefix(prefix string) Option {
 	}
 }
 
+// RouteInfo holds the HTTP method and fully resolved pattern of a registered route.
+// It is returned by Router.Routes() for introspection and debugging purposes.
+type RouteInfo struct {
+	Method  string // HTTP method (e.g. "GET", "POST")
+	Pattern string // Full resolved path (e.g. "/api/v1/users/{id}")
+}
+
 // Router defines the interface for a layered HTTP router.
 type Router interface {
 	http.Handler
@@ -88,6 +95,9 @@ type Router interface {
 	//	})
 	Route(pattern string, fn func(Route))
 
+	// Routes returns all registered routes.
+	Routes() []RouteInfo
+
 	// With returns a new Router instance that includes the provided middlewares
 	// in addition to the existing ones. Perfect for method chaining.
 	With(middlewares ...func(http.Handler) http.Handler) Router
@@ -98,8 +108,10 @@ type Router interface {
 
 // New creates a new Router instance with optional configurations.
 func New(opts ...Option) Router {
+	routes := make([]RouteInfo, 0)
 	r := &router{
-		mux: http.NewServeMux(),
+		mux:    http.NewServeMux(),
+		routes: &routes,
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -111,6 +123,7 @@ func New(opts ...Option) Router {
 type router struct {
 	prefix             string
 	mux                *http.ServeMux
+	routes             *[]RouteInfo
 	middlewares        []func(http.Handler) http.Handler
 	notFoundRegistered bool
 }

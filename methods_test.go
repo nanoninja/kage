@@ -156,3 +156,53 @@ func TestRouter_NotFound(t *testing.T) {
 		r.NotFound(func(_ http.ResponseWriter, _ *http.Request) {}) // second call: silently ignored
 	})
 }
+
+func TestRouter_Routes(t *testing.T) {
+	t.Run("returns registered routes", func(t *testing.T) {
+		r := New()
+		r.Get("/users", func(_ http.ResponseWriter, _ *http.Request) {})
+		r.Post("/users", func(_ http.ResponseWriter, _ *http.Request) {})
+		r.Delete("/users/{id}", func(_ http.ResponseWriter, _ *http.Request) {})
+
+		routes := r.Routes()
+		if len(routes) != 3 {
+			t.Fatalf("expected 3 routes, got %d", len(routes))
+		}
+	})
+
+	t.Run("route info contains correct method and pattern", func(t *testing.T) {
+		r := New(WithPrefix("/api"))
+		r.Get("/users", func(_ http.ResponseWriter, _ *http.Request) {})
+
+		routes := r.Routes()
+		if len(routes) != 1 {
+			t.Fatalf("expected 1 route, got %d", len(routes))
+		}
+		if routes[0].Method != http.MethodGet {
+			t.Errorf("expected method GET, got %q", routes[0].Method)
+		}
+		if routes[0].Pattern != "/api/users" {
+			t.Errorf("expected pattern /api/users, got %q", routes[0].Pattern)
+		}
+	})
+
+	t.Run("group routes are visible from parent", func(t *testing.T) {
+		r := New()
+		r.Group("/api", func(api Router) {
+			api.Get("/status", func(_ http.ResponseWriter, _ *http.Request) {})
+			api.Post("/users", func(_ http.ResponseWriter, _ *http.Request) {})
+		})
+
+		routes := r.Routes()
+		if len(routes) != 2 {
+			t.Fatalf("expected 2 routes from group, got %d", len(routes))
+		}
+	})
+
+	t.Run("empty router returns empty slice", func(t *testing.T) {
+		r := New()
+		if routes := r.Routes(); len(routes) != 0 {
+			t.Errorf("expected empty routes, got %d", len(routes))
+		}
+	})
+}

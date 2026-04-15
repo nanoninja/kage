@@ -196,6 +196,27 @@ r.Mount("/users", users)
 r.Mount("/metrics", promhttp.Handler())
 ```
 
+## Route Introspection
+
+List all registered routes at runtime — useful for debugging or generating documentation.
+
+```go
+r := kage.New(kage.WithPrefix("/api"))
+r.Get("/users", listUsers)
+r.Post("/users", createUser)
+
+r.Group("/v1", func(v1 kage.Router) {
+    v1.Delete("/users/{id}", deleteUser)
+})
+
+for _, route := range r.Routes() {
+    fmt.Printf("%s %s\n", route.Method, route.Pattern)
+}
+// GET /api/users
+// POST /api/users
+// DELETE /api/v1/users/{id}
+```
+
 ## Custom 404 Handler
 
 ```go
