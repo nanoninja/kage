@@ -9,17 +9,31 @@
 [![codecov](https://codecov.io/gh/nanoninja/kage/branch/main/graph/badge.svg)](https://codecov.io/gh/nanoninja/kage)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 
+## Why Kage?
+
+Go 1.22 introduced method-based routing and path parameters directly into the standard `http.ServeMux`. Most developers are still reaching for heavy frameworks when the stdlib already handles the hard part.
+
+Kage builds on that foundation instead of replacing it. You get route grouping, middleware chaining, graceful shutdown, and a ready-to-use middleware package — all without a single external dependency. If you ever need to drop down to plain `net/http`, everything is compatible.
+
+> If chi or gin do more than you need, Kage is the layer you were missing.
+
 ## Features
 
-* **Zero Dependencies**: Pure Go standard library.
-* **Go 1.22+ Ready**: Native support for HTTP methods and path parameters.
-* **Functional Options**: Clean and flexible router initialization.
-* **Fluid Middleware Stack**: Global, group-level, or per-route middlewares (FIFO).
-* **Structured Logging**: Built-in support for `slog`.
-* **Panic Recovery**: Robust recovery middleware with custom error handler.
-* **Response Instrumentation**: Captured status codes and size via a custom `ResponseWriter`.
-* **Static File Serving**: Easy-to-use helpers for serving assets with automatic path stripping.
-* **Native Compatibility**: Fully compatible with `http.ResponseController` (Unwrap).
+* **Zero Dependencies** — Pure Go standard library.
+* **Go 1.22+ Ready** — Native support for HTTP methods and path parameters.
+* **Functional Options** — Clean and flexible router initialization.
+* **Fluid Middleware Stack** — Global, group-level, or per-route middlewares (FIFO).
+* **Route Grouping** — Organize routes under shared prefixes with isolated middleware stacks.
+* **Multi-Method Routes** — Register multiple HTTP methods on a single path with `Route`.
+* **Sub-Router Mounting** — Attach any `http.Handler` at a prefix with `Mount`.
+* **Structured Logging** — Built-in support for `slog`.
+* **Panic Recovery** — Robust recovery middleware with custom error handler.
+* **CORS** — Configurable CORS middleware with preflight support.
+* **Timeout** — Per-request context timeout with custom error handler.
+* **Response Instrumentation** — Captured status codes and size via a custom `ResponseWriter`.
+* **Static File Serving** — Easy-to-use helpers for serving assets with automatic path stripping.
+* **Graceful Shutdown** — Clean server lifecycle management for Docker/Kubernetes.
+* **Native Compatibility** — Fully compatible with `http.ResponseController` (Unwrap).
 
 ## Installation
 
@@ -36,35 +50,36 @@ import (
     "log/slog"
     "net/http"
     "os"
+    "time"
     "github.com/nanoninja/kage"
     "github.com/nanoninja/kage/middleware"
 )
 
 func main() {
     logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-    
-    // Initialize router with options
+
     r := kage.New(
         kage.WithPrefix("/api"),
     )
 
-    // Global Middlewares
     r.Use(middleware.Recoverer(logger, nil))
     r.Use(middleware.Logger(logger))
+    r.Use(middleware.CORS(middleware.DefaultCORSConfig()))
 
-    // Simple Route
     r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
         w.Write([]byte("OK"))
     })
 
-    // Sub-group /api/v1
     r.Group("/v1", func(v1 kage.Router) {
-        v1.Get("/users", func(w http.ResponseWriter, r *http.Request) {
-            w.Write([]byte("User List"))
+        v1.Route("/users/{id}", func(rt kage.Route) {
+            rt.Get(getUser)
+            rt.Put(updateUser)
+            rt.Delete(deleteUser)
         })
     })
 
-    http.ListenAndServe(":8080", r)
+    srv := &http.Server{Addr: ":8080", Handler: r}
+    kage.ServeGraceful(srv, srv.ListenAndServe, 10*time.Second)
 }
 ```
 
@@ -94,8 +109,39 @@ This router leverages the Go 1.22+ `ServeMux` engine. It supports modern feature
 
 * **`GET /path`**: Restricts the route to a specific HTTP method.
 * **`/{$}` (Strict Root)**: Matches **only** the exact path `/`.
-* **`/posts/{id}`**: Captures a path parameter. Use `req.PathValue("id")` to retrieve it.
+* **`/posts/{id}`**: Captures a path parameter. Use `kage.Param(r, "id")` to retrieve it.
 * **`/files/` (Subtree)**: A trailing slash creates a subtree match.
+
+### HTTP Verb Shortcuts
+
+```go
+r.Get("/users", listUsers)
+r.Post("/users", createUser)
+r.Put("/users/{id}", updateUser)
+r.Patch("/users/{id}", patchUser)
+r.Delete("/users/{id}", deleteUser)
+```
+
+### Multi-Method Routes
+
+Register multiple methods on the same path without repeating it:
+
+```go
+r.Route("/users/{id}", func(rt kage.Route) {
+    rt.Get(getUser)
+    rt.Put(updateUser)
+    rt.Delete(deleteUser)
+})
+```
+
+### Path Parameters
+
+```go
+r.Get("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
+    id := kage.Param(r, "id")
+    fmt.Fprintf(w, "User: %s", id)
+})
+```
 
 ### Path Merging and Grouping
 
@@ -114,14 +160,43 @@ The `{path...}` wildcard captures everything from that point onwards.
 ```go
 // Matches /gallery/summer/vacation.jpg
 r.Get("/gallery/{path...}", func(w http.ResponseWriter, r *http.Request) {
-    path := r.PathValue("path")
+    path := kage.Param(r, "path")
     fmt.Fprintf(w, "Fetching file at: %s", path)
 })
 ```
 
-## Custom 404 Handler
+## Groups
 
-You can override the default 404 behavior using the `NotFound` method or the `WithNotFound` option.
+Organize related routes under a shared prefix. Each group clones the parent middleware stack, so group-level middlewares do not affect sibling groups or the parent.
+
+```go
+r.Group("/api", func(api kage.Router) {
+    api.Use(authMiddleware)
+
+    api.Group("/v1", func(v1 kage.Router) {
+        v1.Get("/users", listUsers)
+        v1.Post("/users", createUser)
+    })
+})
+```
+
+## Mount
+
+Attach any `http.Handler` (including another kage router) at a given prefix. The mounted handler receives requests with the prefix stripped from the path.
+
+```go
+// Mount a sub-router
+users := kage.New()
+users.Get("/", listUsers)
+users.Post("/", createUser)
+
+r.Mount("/users", users)
+
+// Mount a third-party handler
+r.Mount("/metrics", promhttp.Handler())
+```
+
+## Custom 404 Handler
 
 ```go
 r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +212,6 @@ Kage handles static file serving by automatically calculating the correct prefix
 
 ### Local Directory
 
-The simplest way to serve a physical folder from your disk.
 ```go
 // Files in "./public" are available at http://localhost:8080/assets/*
 r.Static("/assets", "./public")
@@ -145,129 +219,130 @@ r.Static("/assets", "./public")
 
 ### Embedded Files (Go Embed)
 
-When using `embed.FS`, you have two architectural patterns depending on how you want your URLs to look.
-
-**Pattern 1: Simple (Internal folder visible in URL)**
-If your files are in a `dist` folder, that folder name will appear in the URL path.
-
 ```go
 //go:embed dist/*
 var embedFS embed.FS
 
-// A file at dist/style.css is accessed via:
-// http://localhost:8080/static/dist/style.css
-r.StaticFS("/static", http.FS(embedFS))
-```
-
-**Pattern 2: Clean URLs (Internal folder hidden)**
-If you want to hide the dist folder from your URLs, use fs.Sub to re-root the file system.
-
-```go
-//go:embed dist/*
-var embedFS embed.FS
-
-func main() {
-    r := kage.New()
-
-    // Re-root the filesystem to the "dist" folder
-    subFS, _ := fs.Sub(embedFS, "dist")
-
-    // The same file dist/style.css is now accessed via:
-    // http://localhost:8080/static/style.css
-    r.StaticFS("/static", http.FS(subFS))
-}
-```
-
-**Within Nested Groups**
-Kage correctly calculates the http.StripPrefix even when deeply nested, allowing you to mount assets anywhere in your API tree without manual path management.
-
-```go
-r.Group("/api", func(api kage.Router) {
-    api.Group("/v1", func(v1 kage.Router) {
-        // Automatically strips "/api/v1/docs/"
-        // Accessible at http://localhost:8080/api/v1/docs/swagger.json
-        v1.StaticFS("/docs", http.FS(myDocs))
-    })
-})
+// Re-root to hide the dist/ folder from URLs
+subFS, _ := fs.Sub(embedFS, "dist")
+r.StaticFS("/static", http.FS(subFS))
 ```
 
 ## Middlewares
 
-Middlewares follow a **First In, First Out (FIFO)** execution order. Kage provides essential middlewares in a dedicated sub-package to keep the core router lean.
+Middlewares follow a **First In, First Out (FIFO)** execution order. Kage provides essential middlewares in the `middleware` sub-package.
 
-### Built-in Middlewares
-
-* **Logger**: Uses `slog` to capture method, path, status code, and duration.
-* **Recoverer**: Gracefully recovers from panics and logs the error.
-
-### Global and Group Isolation
-
-Middlewares applied to a group are isolated. When a group is created, it **clones** the parent's middleware stack.
-
-### Per-Route Middlewares
-
-Use `With` to apply middlewares to a specific route without affecting its group.
+### Applying Middlewares
 
 ```go
-r.With(AuthMiddleware).Get("/private", handlePrivate)
+// Global — applies to all routes
+r.Use(middleware.Logger(nil))
+
+// Group-level — applies only to routes in this group
+r.Group("/admin", func(admin kage.Router) {
+    admin.Use(authMiddleware)
+    admin.Get("/dashboard", showDashboard)
+})
+
+// Per-route — applies only to this route
+r.With(rateLimitMiddleware).Post("/login", handleLogin)
+```
+
+### Logger
+
+Logs method, path, status code, and duration using `slog`. Accepts a custom `*slog.Logger` or `nil` for the default.
+
+```go
+r.Use(middleware.Logger(nil))
+```
+
+### Recoverer
+
+Recovers from panics and logs the error. Accepts an optional `onFailure` handler for custom error responses.
+
+```go
+// Default: 500 Internal Server Error
+r.Use(middleware.Recoverer(nil, nil))
+
+// Custom JSON error
+r.Use(middleware.Recoverer(logger, func(w http.ResponseWriter, r *http.Request, err any) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusInternalServerError)
+    fmt.Fprintf(w, `{"error":"%v"}`, err)
+}))
+```
+
+### CORS
+
+Configurable CORS middleware with automatic preflight (`OPTIONS`) handling.
+
+```go
+// Development — allow all origins
+r.Use(middleware.CORS(middleware.DefaultCORSConfig()))
+
+// Production — restrict to specific origins
+r.Use(middleware.CORS(middleware.DefaultCORSConfig("https://myapp.com")))
+
+// Fully custom
+r.Use(middleware.CORS(middleware.CORSConfig{
+    AllowedOrigins:   []string{"https://myapp.com"},
+    AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+    AllowedHeaders:   []string{"Content-Type", "Authorization"},
+    AllowCredentials: true,
+    MaxAge:           3600,
+}))
+```
+
+### Timeout
+
+Cancels the request context after the given duration. Uses an optional `onFailure` handler for custom error responses.
+
+```go
+// Default: 503 Service Unavailable
+r.Use(middleware.Timeout(5*time.Second, nil))
+
+// Custom JSON error
+r.Use(middleware.Timeout(5*time.Second, func(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusServiceUnavailable)
+    w.Write([]byte(`{"error":"request timeout"}`))
+}))
 ```
 
 ## Advanced: Response Instrumentation
 
 Kage includes a public `WrapResponseWriter` in the `middleware` package. This allows both built-in and custom middlewares to access response metadata that is normally hidden by the standard `http.ResponseWriter`.
 
-### Using the Wrapper
-
-If you are building a custom middleware, you can use the wrapper to capture the status code:
-
 ```go
-func MyCustomMiddleware(next http.Handler) http.Handler {
+func MyMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Wrap the response writer
         ww := middleware.NewWrapResponseWriter(w)
-        
         next.ServeHTTP(ww, r)
-        
-        // Access captured data
-        status := ww.Status() 
+        slog.Info("response", "status", ww.Status())
     })
 }
 ```
 
-### Key Methods
-
-* **`rw.Status()`**: Returns the captured HTTP status code.
-* **`rw.Written()`**: Returns `true` if headers have been sent.
-* **`rw.Unwrap()`**: Access the underlying `http.ResponseWriter`. This is essential for **WebSockets**, **SSE**, and **http.ResponseController** compatibility.
+| Method | Description |
+| --- | --- |
+| `rw.Status()` | Returns the captured HTTP status code. |
+| `rw.Written()` | Returns `true` if headers have been sent. |
+| `rw.Unwrap()` | Access the underlying `http.ResponseWriter` (WebSockets, SSE, `http.ResponseController`). |
 
 ## Graceful Shutdown
 
-Kage provides a built-in helper to manage your server's lifecycle, ensuring that active connections are finished before the application exits (ideal for Docker/Kubernetes).
-
 ```go
-func main() {
-    r := kage.New()
-    srv := &http.Server{
-        Addr:    ":8080",
-        Handler: r,
-    }
+srv := &http.Server{Addr: ":8080", Handler: r}
 
-    // ServeGraceful handles SIGINT/SIGTERM and shuts down the server 
-    // within the provided timeout (e.g., 10 seconds).
-    err := kage.ServeGraceful(srv, srv.ListenAndServe, 10*time.Second)
-    
-    if err != nil && err != http.ErrServerClosed {
-        log.Fatalf("Server error: %v", err)
-    }
+if err := kage.ServeGraceful(srv, srv.ListenAndServe, 10*time.Second); err != nil {
+    log.Fatalf("server error: %v", err)
 }
 ```
 
-### Why use a Runner?
-
-By using a `ServerRunner` function, you can easily switch between standard HTTP and TLS without changing the logic:
+`ServeGraceful` listens for `SIGINT` and `SIGTERM`, then calls `srv.Shutdown` with the provided timeout. It absorbs `http.ErrServerClosed` so a clean shutdown always returns `nil`.
 
 ```go
-// For TLS (HTTPS)
+// TLS support
 kage.ServeGraceful(srv, func() error {
     return srv.ListenAndServeTLS("cert.pem", "key.pem")
 }, 10*time.Second)

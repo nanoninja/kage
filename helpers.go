@@ -10,8 +10,15 @@ import (
 	"strings"
 )
 
-// Param returns the path value for the given key from the http.Request.
-// It is a convenient wrapper around r.PathValue.
+// Param returns the value of the named path parameter from the request.
+// It is a convenience wrapper around r.PathValue, introduced in Go 1.22.
+//
+// Example:
+//
+//	r.Get("/users/{id}", func(w http.ResponseWriter, r *http.Request) {
+//	    id := kage.Param(r, "id")
+//	    fmt.Fprintf(w, "User: %s", id)
+//	})
 func Param(r *http.Request, key string) string {
 	return r.PathValue(key)
 }
