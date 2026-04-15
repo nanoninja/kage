@@ -33,6 +33,9 @@ Kage builds on that foundation instead of replacing it. You get route grouping, 
 * **Response Instrumentation** — Captured status codes and size via a custom `ResponseWriter`.
 * **Static File Serving** — Easy-to-use helpers for serving assets with automatic path stripping.
 * **Graceful Shutdown** — Clean server lifecycle management for Docker/Kubernetes.
+* **Request ID** — Automatic unique request ID propagation via context and header.
+* **Compression** — Gzip and deflate response compression out of the box.
+* **Route Introspection** — List all registered routes at runtime.
 * **Native Compatibility** — Fully compatible with `http.ResponseController` (Unwrap).
 
 ## Installation
@@ -317,6 +320,25 @@ r.Use(middleware.CORS(middleware.CORSConfig{
     AllowCredentials: true,
     MaxAge:           3600,
 }))
+```
+
+### RequestID
+
+Assigns a unique ID to each request. Reuses the `X-Request-ID` header if already present (useful for distributed tracing). The ID is available via context in downstream handlers.
+
+```go
+r.Use(middleware.RequestID)
+
+// Retrieve the ID in a handler
+id := middleware.GetRequestID(r)
+```
+
+### Compress
+
+Compresses responses using gzip or deflate based on the client's `Accept-Encoding` header. Gzip takes priority when both are accepted.
+
+```go
+r.Use(middleware.Compress)
 ```
 
 ### Timeout
