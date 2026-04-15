@@ -350,5 +350,5 @@ kage.ServeGraceful(srv, func() error {
 
 ## License
 
-Copyright 2026 The Kage Authors. All rights reserved.
-Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
+This project is licensed under the BSD 3-Clause License.
+See the [LICENSE](LICENSE) file for details.
