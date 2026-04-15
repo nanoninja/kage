@@ -105,6 +105,60 @@ func TestRouter_Route(t *testing.T) {
 		}
 	})
 
+	t.Run("all HTTP methods are reachable", func(t *testing.T) {
+		r := New()
+
+		r.Route("/resource", func(rt Route) {
+			rt.Connect(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+			rt.Head(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+			rt.Options(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+			rt.Patch(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+			rt.Post(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+			rt.Trace(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+		})
+
+		methods := []string{
+			http.MethodConnect,
+			http.MethodHead,
+			http.MethodOptions,
+			http.MethodPatch,
+			http.MethodPost,
+			http.MethodTrace,
+		}
+
+		for _, method := range methods {
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(method, "/resource", nil))
+
+			if rec.Code != http.StatusOK {
+				t.Errorf("%s /resource: expected 200, got %d", method, rec.Code)
+			}
+		}
+	})
+
+	t.Run("Use applies middleware to subsequent route methods", func(t *testing.T) {
+		var mwCalled bool
+		r := New()
+
+		r.Route("/guarded", func(rt Route) {
+			rt.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					mwCalled = true
+					next.ServeHTTP(w, req)
+				})
+			})
+			rt.Post(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusCreated)
+			})
+		})
+
+		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/guarded", nil))
+
+		if !mwCalled {
+			t.Error("middleware registered via Use should be called")
+		}
+	})
+
 	t.Run("nil callback does not panic", func(t *testing.T) {
 		defer func() {
 			if rec := recover(); rec != nil {
