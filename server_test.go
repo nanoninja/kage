@@ -5,6 +5,7 @@
 package kage
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"syscall"
@@ -51,17 +52,24 @@ func TestServeGraceful_Signal(t *testing.T) {
 // TestServeGraceful_ServerError verifies that ServeGraceful returns immediately
 // if the server runner encounters an error (e.g., port already in use).
 func TestServeGraceful_ServerError(t *testing.T) {
-	srv := &http.Server{Addr: ":8080"}
+	t.Run("ErrServerClosed is absorbed and returns nil", func(t *testing.T) {
+		srv := &http.Server{Addr: ":8080"}
+		runner := func() error { return http.ErrServerClosed }
 
-	// Mocking a specific server error
-	forcedError := http.ErrServerClosed
-	runner := func() error {
-		return forcedError
-	}
+		err := ServeGraceful(srv, runner, 1*time.Second)
+		if err != nil {
+			t.Errorf("expected nil for ErrServerClosed, got %v", err)
+		}
+	})
 
-	err := ServeGraceful(srv, runner, 1*time.Second)
+	t.Run("real error is propagated", func(t *testing.T) {
+		srv := &http.Server{Addr: ":8080"}
+		sentinel := errors.New("bind: address already in use")
+		runner := func() error { return sentinel }
 
-	if err != forcedError {
-		t.Errorf("expected error %v, got %v", forcedError, err)
-	}
+		err := ServeGraceful(srv, runner, 1*time.Second)
+		if err != sentinel {
+			t.Errorf("expected sentinel error, got %v", err)
+		}
+	})
 }

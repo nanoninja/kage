@@ -34,7 +34,7 @@ func TestRouter_Options(t *testing.T) {
 
 	t.Run("WithNotFound registers custom 404 handler", func(t *testing.T) {
 		status := http.StatusTeapot
-		custom404 := func(w http.ResponseWriter, r *http.Request) {
+		custom404 := func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(status)
 		}
 
@@ -110,7 +110,7 @@ func TestRouter_MiddlewareChain(t *testing.T) {
 			})
 		}
 
-		api.With(mwWith).Get("/users", func(w http.ResponseWriter, req *http.Request) {
+		api.With(mwWith).Get("/users", func(_ http.ResponseWriter, _ *http.Request) {
 			trace = append(trace, "handler")
 		})
 	})
@@ -144,7 +144,7 @@ func TestRouter_MiddlewareOrder(t *testing.T) {
 		})
 	})
 
-	r.Get("/test", func(w http.ResponseWriter, req *http.Request) {
+	r.Get("/test", func(_ http.ResponseWriter, _ *http.Request) {
 		trace = append(trace, "Handler")
 	})
 
@@ -211,7 +211,7 @@ func TestStatic(t *testing.T) {
 			r.ServeHTTP(rec, req)
 
 			res := rec.Result()
-			defer res.Body.Close()
+			defer func() { _ = res.Body.Close() }()
 
 			if res.StatusCode != tt.expectedStatus {
 				t.Errorf("expected status %d, got %d", tt.expectedStatus, res.StatusCode)

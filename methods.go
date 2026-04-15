@@ -10,20 +10,11 @@ import (
 )
 
 func (r *router) Handle(pattern string, h http.Handler) {
-	p, method := pattern, ""
-
-	if before, after, ok := strings.Cut(pattern, " "); ok {
-		method = before
-		p = after
+	if method, p, ok := strings.Cut(pattern, " "); ok {
+		r.Method(method, p, h)
+		return
 	}
-
-	path := r.wrapPath(p)
-
-	if method != "" {
-		path = method + " " + path
-	}
-
-	r.mux.Handle(path, r.chain(h))
+	r.mux.Handle(r.wrapPath(pattern), r.chain(h))
 }
 
 func (r *router) HandleFunc(pattern string, h http.HandlerFunc) {
@@ -75,7 +66,9 @@ func (r *router) Trace(pattern string, h http.HandlerFunc) {
 }
 
 func (r *router) NotFound(h http.HandlerFunc) {
-	r.mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		h.ServeHTTP(w, req)
-	})
+	if r.notFoundRegistered {
+		return
+	}
+	r.notFoundRegistered = true
+	r.mux.Handle("/", r.chain(h))
 }

@@ -27,7 +27,7 @@ func TestRouter_Group(t *testing.T) {
 
 		r.Group("/api", func(api Router) {
 			api.Group("/v1/", func(v1 Router) { // Testing trailing slash normalization too
-				v1.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+				v1.Get("/health", func(_ http.ResponseWriter, _ *http.Request) {
 					called = true
 				})
 			})
@@ -48,10 +48,10 @@ func TestRouter_Group(t *testing.T) {
 
 		r.Group("/api", func(api Router) {
 			api.Use(createTestMiddleware("B", &trace))
-			api.Get("/users", func(w http.ResponseWriter, r *http.Request) {})
+			api.Get("/users", func(_ http.ResponseWriter, _ *http.Request) {})
 		})
 
-		r.Get("/root", func(w http.ResponseWriter, r *http.Request) {})
+		r.Get("/root", func(_ http.ResponseWriter, _ *http.Request) {})
 
 		// Test root: Should only execute "A"
 		trace = ""
@@ -89,9 +89,9 @@ func TestRouter_With(t *testing.T) {
 		r := New()
 
 		auth := r.With(createTestMiddleware("AUTH", &trace))
-		auth.Get("/private", func(w http.ResponseWriter, r *http.Request) {})
+		auth.Get("/private", func(_ http.ResponseWriter, _ *http.Request) {})
 
-		r.Get("/public", func(w http.ResponseWriter, r *http.Request) {})
+		r.Get("/public", func(_ http.ResponseWriter, _ *http.Request) {})
 
 		// Test public: trace should remain empty
 		trace = ""

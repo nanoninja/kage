@@ -39,8 +39,9 @@ func (r *router) clone() *router {
 	copy(mws, r.middlewares)
 
 	return &router{
-		prefix:      r.prefix,
-		mux:         r.mux,
-		middlewares: mws,
+		prefix:             r.prefix,
+		mux:                r.mux,
+		middlewares:        mws,
+		notFoundRegistered: r.notFoundRegistered,
 	}
 }

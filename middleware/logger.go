@@ -19,21 +19,15 @@ func Logger(l *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
+			ww := NewWrapResponseWriter(w)
 
-			next.ServeHTTP(w, r)
-
-			status := http.StatusOK
-			if rw, ok := w.(interface{ Status() int }); ok {
-				status = rw.Status()
-			}
-
-			duration := time.Since(start)
+			next.ServeHTTP(ww, r)
 
 			l.Info("http request",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
-				slog.Int("status", status),
-				slog.Duration("duration", duration),
+				slog.Int("status", ww.Status()),
+				slog.Duration("duration", time.Since(start)),
 			)
 		})
 	}

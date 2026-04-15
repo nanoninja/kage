@@ -19,7 +19,7 @@ func TestLogger(t *testing.T) {
 		l := slog.New(slog.NewJSONHandler(&buf, nil))
 
 		mw := Logger(l)
-		handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte("created"))
 		}))
@@ -27,9 +27,7 @@ func TestLogger(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/users", nil)
 		rec := httptest.NewRecorder()
 
-		// We need our responseWriter to capture status
-		rw := NewWrapResponseWriter(rec)
-		handler.ServeHTTP(rw, req)
+		handler.ServeHTTP(rec, req)
 
 		output := buf.String()
 		if !strings.Contains(output, `"method":"POST"`) {
@@ -45,14 +43,17 @@ func TestLogger(t *testing.T) {
 
 	t.Run("default to slog.Default when nil", func(t *testing.T) {
 		mw := Logger(nil)
-		handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := mw(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 
-		// Should not panic
 		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
+		}
 	})
 }

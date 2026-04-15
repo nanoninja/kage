@@ -108,9 +108,10 @@ func New(opts ...Option) Router {
 
 // router is an implementation of the Router interface.
 type router struct {
-	prefix      string
-	mux         *http.ServeMux
-	middlewares []func(http.Handler) http.Handler
+	prefix             string
+	mux                *http.ServeMux
+	middlewares        []func(http.Handler) http.Handler
+	notFoundRegistered bool
 }
 
 func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

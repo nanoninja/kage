@@ -12,8 +12,8 @@ import (
 func Example() {
 	r := kage.New()
 
-	r.Get("/hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hello, Nanoninja!")
+	r.Get("/hello", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, "Hello, Nanoninja!")
 	})
 
 	// To serve:
@@ -25,8 +25,8 @@ func ExampleRouter_Group() {
 	r := kage.New()
 
 	r.Group("/api", func(api kage.Router) {
-		api.Get("/status", func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, "OK")
+		api.Get("/status", func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = fmt.Fprint(w, "OK")
 		})
 	})
 }
@@ -36,7 +36,7 @@ func ExampleRouter_With() {
 	r := kage.New()
 
 	// Only this specific route will use the Logger
-	r.With(middleware.Logger(nil)).Get("/private", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Authenticated access")
+	r.With(middleware.Logger(nil)).Get("/private", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, "Authenticated access")
 	})
 }

@@ -30,6 +30,9 @@ func ServeGraceful(srv *http.Server, runner ServerRunner, timeout time.Duration)
 
 	select {
 	case err := <-runnerError:
+		if err == http.ErrServerClosed {
+			return nil
+		}
 		return err
 
 	case <-stop:

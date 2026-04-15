@@ -14,7 +14,7 @@ func TestRouter_Handle(t *testing.T) {
 	t.Run("register with Handle and specific method pattern", func(t *testing.T) {
 		r := New()
 
-		r.Handle("POST /custom", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Handle("POST /custom", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusCreated)
 		}))
 
@@ -32,7 +32,7 @@ func TestRouter_GenericMethods(t *testing.T) {
 	r := New()
 
 	t.Run("Method", func(t *testing.T) {
-		r.Method("PURGE", "/cache", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Method("PURGE", "/cache", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(204)
 		}))
 
@@ -46,7 +46,7 @@ func TestRouter_GenericMethods(t *testing.T) {
 	})
 
 	t.Run("MethodFunc", func(t *testing.T) {
-		r.MethodFunc("PROFIND", "webdav", func(w http.ResponseWriter, r *http.Request) {
+		r.MethodFunc("PROFIND", "webdav", func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(207)
 		})
 
@@ -89,7 +89,7 @@ func TestRouter_Methods(t *testing.T) {
 		// Create a unique path for each case
 		path := "/" + tt.name
 
-		tt.action(path, func(w http.ResponseWriter, r *http.Request) {
+		tt.action(path, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(tt.status)
 		})
 
@@ -109,7 +109,7 @@ func TestRouter_NotFound(t *testing.T) {
 	t.Run("custom not found handler", func(t *testing.T) {
 		r := New()
 
-		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusTeapot)
 		})
 
@@ -120,5 +120,39 @@ func TestRouter_NotFound(t *testing.T) {
 		if rec.Code != http.StatusTeapot {
 			t.Errorf("Expected 418 for custom NotFound, got %d", rec.Code)
 		}
+	})
+
+	t.Run("middleware chain is applied to NotFound handler", func(t *testing.T) {
+		r := New()
+		var mwCalled bool
+
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				mwCalled = true
+				next.ServeHTTP(w, req)
+			})
+		})
+
+		r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		})
+
+		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/missing", nil))
+
+		if !mwCalled {
+			t.Error("NotFound handler should pass through the middleware chain")
+		}
+	})
+
+	t.Run("calling NotFound twice does not panic", func(t *testing.T) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				t.Errorf("NotFound called twice caused a panic: %v", rec)
+			}
+		}()
+
+		r := New()
+		r.NotFound(func(_ http.ResponseWriter, _ *http.Request) {})
+		r.NotFound(func(_ http.ResponseWriter, _ *http.Request) {}) // second call: silently ignored
 	})
 }
