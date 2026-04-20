@@ -137,6 +137,16 @@ r.Route("/users/{id}", func(rt kage.Route) {
 })
 ```
 
+To apply a middleware to all methods of a route, use `With` before `Route`:
+
+```go
+r.With(authMiddleware).Route("/users/{id}", func(rt kage.Route) {
+    rt.Get(getUser)
+    rt.Put(updateUser)
+    rt.Delete(deleteUser)
+})
+```
+
 ### Path Parameters
 
 ```go

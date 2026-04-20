@@ -30,7 +30,7 @@ func TestRouter_Handle(t *testing.T) {
 	t.Run("normalizes lowercase method in pattern", func(t *testing.T) {
 		r := New()
 
-		r.Handle("post /lower", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Handle("post /lower", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusAccepted)
 		}))
 
