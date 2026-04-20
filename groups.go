@@ -34,7 +34,7 @@ func (r *router) Mount(prefix string, h http.Handler) {
 func (r *router) Route(pattern string, fn func(Route)) {
 	rt := &route{
 		pattern: pattern,
-		r:       r,
+		r:       r.clone(),
 	}
 	if fn != nil {
 		fn(rt)

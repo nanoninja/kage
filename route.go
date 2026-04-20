@@ -18,7 +18,6 @@ type Route interface {
 	Post(h http.HandlerFunc)
 	Put(h http.HandlerFunc)
 	Trace(h http.HandlerFunc)
-	Use(...func(http.Handler) http.Handler)
 }
 
 // route is the implementation of the Route interface.
@@ -61,8 +60,4 @@ func (rt *route) Put(h http.HandlerFunc) {
 
 func (rt *route) Trace(h http.HandlerFunc) {
 	rt.r.Method(http.MethodTrace, rt.pattern, h)
-}
-
-func (rt *route) Use(middlewares ...func(http.Handler) http.Handler) {
-	rt.r.Use(middlewares...)
 }

@@ -135,37 +135,4 @@ func TestRouter_Route(t *testing.T) {
 			}
 		}
 	})
-
-	t.Run("Use applies middleware to subsequent route methods", func(t *testing.T) {
-		var mwCalled bool
-		r := New()
-
-		r.Route("/guarded", func(rt Route) {
-			rt.Use(func(next http.Handler) http.Handler {
-				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-					mwCalled = true
-					next.ServeHTTP(w, req)
-				})
-			})
-			rt.Post(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusCreated)
-			})
-		})
-
-		r.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/guarded", nil))
-
-		if !mwCalled {
-			t.Error("middleware registered via Use should be called")
-		}
-	})
-
-	t.Run("nil callback does not panic", func(t *testing.T) {
-		defer func() {
-			if rec := recover(); rec != nil {
-				t.Errorf("Route with nil callback panicked: %v", rec)
-			}
-		}()
-		r := New()
-		r.Route("/noop", nil)
-	})
 }

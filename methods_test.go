@@ -26,6 +26,21 @@ func TestRouter_Handle(t *testing.T) {
 			t.Errorf("Handle failed: got %d, want 201", rec.Code)
 		}
 	})
+
+	t.Run("normalizes lowercase method in pattern", func(t *testing.T) {
+		r := New()
+
+		r.Handle("post /lower", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusAccepted)
+		}))
+
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/lower", nil))
+
+		if rec.Code != http.StatusAccepted {
+			t.Errorf("expected 202, got %d", rec.Code)
+		}
+	})
 }
 
 func TestRouter_GenericMethods(t *testing.T) {

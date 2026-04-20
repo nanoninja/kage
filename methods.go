@@ -11,7 +11,7 @@ import (
 
 func (r *router) Handle(pattern string, h http.Handler) {
 	if method, p, ok := strings.Cut(pattern, " "); ok {
-		r.Method(method, p, h)
+		r.Method(strings.ToUpper(method), p, h)
 		return
 	}
 	r.mux.Handle(r.wrapPath(pattern), r.chain(h))
