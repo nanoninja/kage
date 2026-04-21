@@ -7,6 +7,7 @@ package middleware
 import (
 	"compress/flate"
 	"compress/gzip"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -94,6 +95,27 @@ func TestCompress(t *testing.T) {
 
 		if got := rec.Header().Get("Content-Encoding"); got != "gzip" {
 			t.Errorf("expected gzip to take priority, got %q", got)
+		}
+	})
+
+	t.Run("deflate writer error falls back to uncompressed", func(t *testing.T) {
+		orig := flateNewWriter
+		flateNewWriter = func(_ io.Writer, level int) (*flate.Writer, error) {
+			return nil, errors.New("forced error")
+		}
+		defer func() { flateNewWriter = orig }()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Accept-Encoding", "deflate")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if got := rec.Header().Get("Content-Encoding"); got != "" {
+			t.Errorf("expected no Content-Encoding on error, got %q", got)
+		}
+		if body := rec.Body.String(); body != compressBody {
+			t.Errorf("expected uncompressed body %q, got %q", compressBody, body)
 		}
 	})
 }

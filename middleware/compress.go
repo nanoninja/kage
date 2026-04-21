@@ -22,6 +22,8 @@ func (w *compressWriter) Write(b []byte) (int, error) {
 	return w.writer.Write(b)
 }
 
+var flateNewWriter = flate.NewWriter
+
 // Compress returns a middleware that compresses responses using gzip or deflate
 // based on the client's Accept-Encoding header.
 // If the client does not support compression, the response is passed through unchanged.
@@ -40,7 +42,11 @@ func Compress(next http.Handler) http.Handler {
 			_ = gz.Close()
 
 		case strings.Contains(encoding, "deflate"):
-			fl, _ := flate.NewWriter(w, flate.DefaultCompression)
+			fl, err := flateNewWriter(w, flate.DefaultCompression)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
 
 			w.Header().Set("Content-Encoding", "deflate")
 			w.Header().Del("Content-Length")
