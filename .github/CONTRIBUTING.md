@@ -1,38 +1,49 @@
-# Contributing to Kage Package
+# Contributing to Kage
 
 ## Reporting Issues
 
 Did you find a bug or have a suggestion for improvement?
 
 1. Check if the issue already exists by searching the [Issues](https://github.com/nanoninja/kage/issues) section.
+2. If not, [open a new one](https://github.com/nanoninja/kage/issues/new). Include a clear title, a minimal reproduction case, and your Go version.
 
-2. If you can't find an existing issue, feel free to [open a new one](https://github.com/nanoninja/kage/issues/new). Please include:
-   - A clear title and description
-   - An example showing the unexpected behavior
-   - The version of Go you're using
-   - Any relevant code snippets
+## Before You Start
 
-## Code Contributions
+Open an issue to discuss your idea before submitting a pull request. This avoids duplicate work and ensures the change aligns with the project direction.
 
-This package aims to remain simple and focused. Before submitting a pull request for a new feature, please open an issue first to discuss the proposed changes.
+## Ground Rules
 
-### Pull Request Process
+- No external dependencies. Kage is stdlib-only by design.
+- No breaking changes without a major version bump.
+- All exported symbols must have godoc comments.
+- All new code must be covered by tests. Run with `-race` to check for data races.
 
-1. Ensure your code follows the existing code style
-2. Add or update tests as needed
-3. Update documentation if necessary
-4. Verify all tests pass locally
-5. Sign your commits
+## Commit Messages
 
-### Development Setup
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```bash
-# Clone the repository
-git clone https://github.com/nanoninja/kage.git
-
-# Install dependencies
-go mod download
-
-# Run tests
-go test -v ./...
 ```
+<type>(<scope>): <short description>
+
+Types: feat, fix, refactor, test, docs, ci, chore
+Scope: middleware, router, or omit for top-level changes
+
+Examples:
+  feat(middleware): add RateLimit middleware
+  fix(router): normalize trailing slash in wrapPath
+  docs: update README with Mount example
+```
+
+## Pull Request Process
+
+1. Fork the repository and create a branch: `feature/<name>` or `fix/<name>`.
+2. Make your changes with tests.
+3. Run `go test -v -race ./...` and `golangci-lint run ./...` — both must pass.
+4. Update `CHANGELOG.md` under `[Unreleased]`.
+5. Open a pull request against `main`.
+
+## Release Process (maintainers)
+
+1. Move `[Unreleased]` entries to a new versioned section in `CHANGELOG.md`.
+2. Tag the commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Create a GitHub release using the CHANGELOG section as release notes.
