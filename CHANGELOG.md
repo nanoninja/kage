@@ -7,14 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.4] - 2026-04-25
+## [0.7.3] - 2026-04-25
 
 ### Added
 - `Redirect` helper — returns an `http.HandlerFunc` that redirects to the given URL and status code.
 - `CacheControl` middleware — sets the `Cache-Control` header on every response.
 - `NoCache` middleware — sets `Cache-Control`, `Pragma`, and `Expires` headers to prevent caching.
-
-## [0.7.3] - 2026-04-25
 
 ### Fixed
 - `Compress` middleware now falls back to uncompressed response when `flate.NewWriter` fails instead of panicking.
