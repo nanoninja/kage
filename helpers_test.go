@@ -34,6 +34,51 @@ func TestParam(t *testing.T) {
 	})
 }
 
+func TestRedirect(t *testing.T) {
+	tests := []struct {
+		name     string
+		to       string
+		code     int
+		method   string
+	}{
+		{"301 on GET", "/new", http.StatusMovedPermanently, http.MethodGet},
+		{"302 on GET", "/new", http.StatusFound, http.MethodGet},
+		{"301 on POST", "/new", http.StatusMovedPermanently, http.MethodPost},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, "/old", nil)
+			rec := httptest.NewRecorder()
+
+			Redirect(tt.to, tt.code).ServeHTTP(rec, req)
+
+			if rec.Code != tt.code {
+				t.Errorf("expected status %d, got %d", tt.code, rec.Code)
+			}
+			if loc := rec.Header().Get("Location"); loc != tt.to {
+				t.Errorf("expected Location %q, got %q", tt.to, loc)
+			}
+		})
+	}
+
+	t.Run("integrates with router", func(t *testing.T) {
+		r := New()
+		r.Get("/about", Redirect("/about-us", http.StatusMovedPermanently))
+
+		req := httptest.NewRequest(http.MethodGet, "/about", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusMovedPermanently {
+			t.Errorf("expected 301, got %d", rec.Code)
+		}
+		if loc := rec.Header().Get("Location"); loc != "/about-us" {
+			t.Errorf("expected Location %q, got %q", "/about-us", loc)
+		}
+	})
+}
+
 func TestRouter_Chain(t *testing.T) {
 	t.Run("execute middleware in FIFO order", func(t *testing.T) {
 		var result string

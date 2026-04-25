@@ -20,7 +20,7 @@ Kage builds on that foundation instead of replacing it. You get route grouping, 
 ## Features
 
 * **Zero Dependencies** — Pure Go standard library.
-* **Go 1.22+ Ready** — Native support for HTTP methods and path parameters.
+* **Go 1.24+ Ready** — Native support for HTTP methods and path parameters.
 * **Functional Options** — Clean and flexible router initialization.
 * **Fluid Middleware Stack** — Global, group-level, or per-route middlewares (FIFO).
 * **Route Grouping** — Organize routes under shared prefixes with isolated middleware stacks.
@@ -32,6 +32,8 @@ Kage builds on that foundation instead of replacing it. You get route grouping, 
 * **Timeout** — Per-request context timeout with custom error handler.
 * **Response Instrumentation** — Captured status codes and size via a custom `ResponseWriter`.
 * **Static File Serving** — Easy-to-use helpers for serving assets with automatic path stripping.
+* **Redirect Helper** — One-liner redirect handler compatible with any HTTP verb.
+* **Cache Control** — `CacheControl` and `NoCache` middlewares for HTTP cache headers.
 * **Graceful Shutdown** — Clean server lifecycle management for Docker/Kubernetes.
 * **Request ID** — Automatic unique request ID propagation via context and header.
 * **Compression** — Gzip and deflate response compression out of the box.
@@ -262,6 +264,15 @@ subFS, _ := fs.Sub(embedFS, "dist")
 r.Mount("/static", kage.FileServerFS(http.FS(subFS)))
 ```
 
+## Redirect
+
+`kage.Redirect` returns an `http.HandlerFunc` that redirects requests to the given URL. It is a convenience wrapper around `http.Redirect`, compatible with any HTTP verb.
+
+```go
+r.Get("/about", kage.Redirect("/about-us", http.StatusMovedPermanently))
+r.Handle("/old-api", kage.Redirect("/api/v2", http.StatusFound))
+```
+
 ## Middlewares
 
 Middlewares follow a **First In, First Out (FIFO)** execution order. Kage provides essential middlewares in the `middleware` sub-package.
@@ -365,6 +376,26 @@ r.Use(middleware.Timeout(5*time.Second, func(w http.ResponseWriter, r *http.Requ
     w.WriteHeader(http.StatusServiceUnavailable)
     w.Write([]byte(`{"error":"request timeout"}`))
 }))
+```
+
+### CacheControl
+
+Sets the `Cache-Control` header on every response.
+
+```go
+// Cache public responses for 1 hour
+r.Use(middleware.CacheControl("public, max-age=3600"))
+
+// Disable caching for private API routes
+api.Use(middleware.CacheControl("no-store"))
+```
+
+### NoCache
+
+Sets `Cache-Control`, `Pragma`, and `Expires` headers to prevent browsers and proxies from caching the response. Useful for authenticated or dynamic pages.
+
+```go
+r.Use(middleware.NoCache)
 ```
 
 ## Advanced: Response Instrumentation

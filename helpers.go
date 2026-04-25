@@ -43,6 +43,19 @@ func FileServerFS(fsys http.FileSystem) http.Handler {
 	return http.FileServer(fsys)
 }
 
+// Redirect returns an http.HandlerFunc that redirects requests to the given URL.
+// It is a convenience wrapper around http.Redirect.
+//
+// Example:
+//
+//	r.Get("/about", kage.Redirect("/about-us", http.StatusMovedPermanently))
+//	r.Handle("/old-api", kage.Redirect("/api/v2", http.StatusFound))
+func Redirect(url string, code int) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, url, code)
+	}
+}
+
 // chain wraps the given http.Handler with all registered middlewares
 // in the correct order (FIFO).
 func (r *router) chain(h http.Handler) http.Handler {
