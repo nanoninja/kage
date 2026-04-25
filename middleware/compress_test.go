@@ -100,7 +100,7 @@ func TestCompress(t *testing.T) {
 
 	t.Run("deflate writer error falls back to uncompressed", func(t *testing.T) {
 		orig := flateNewWriter
-		flateNewWriter = func(_ io.Writer, level int) (*flate.Writer, error) {
+		flateNewWriter = func(_ io.Writer, _ int) (*flate.Writer, error) {
 			return nil, errors.New("forced error")
 		}
 		defer func() { flateNewWriter = orig }()

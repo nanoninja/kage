@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
+      - 'feat/**'
       - 'feature/**'
       - 'fix/**'
+      - 'refactor/**'
   pull_request:
     branches: [ main ]
 
@@ -27,6 +29,12 @@ jobs:
 
     - name: Install dependencies
       run: go mod download
+
+    - name: Build
+      run: go build ./...
+
+    - name: Vet
+      run: go vet ./...
 
     - name: Run tests with coverage
       run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...

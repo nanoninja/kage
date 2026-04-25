@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-var nopHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+var nopHandler = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 
 func BenchmarkRouter_SimpleRoute(b *testing.B) {
 	r := New()
