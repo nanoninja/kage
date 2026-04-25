@@ -4,7 +4,10 @@
 
 package kage
 
-import "net/http"
+import (
+	"net/http"
+	"sync/atomic"
+)
 
 // Option defines a function type for configuring the router.
 type Option func(*router)
@@ -110,8 +113,9 @@ type Router interface {
 func New(opts ...Option) Router {
 	routes := make([]RouteInfo, 0)
 	r := &router{
-		mux:    http.NewServeMux(),
-		routes: &routes,
+		mux:                http.NewServeMux(),
+		routes:             &routes,
+		notFoundRegistered: new(atomic.Bool),
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -125,7 +129,7 @@ type router struct {
 	mux                *http.ServeMux
 	routes             *[]RouteInfo
 	middlewares        []func(http.Handler) http.Handler
-	notFoundRegistered bool
+	notFoundRegistered *atomic.Bool
 }
 
 func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {

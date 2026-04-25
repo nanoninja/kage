@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.2] - 2026-04-25
+## [0.7.3] - 2026-04-25
 
 ### Fixed
 - `Compress` middleware now falls back to uncompressed response when `flate.NewWriter` fails instead of panicking.
+- `notFoundRegistered` replaced by `*atomic.Bool` shared across clones — prevents duplicate `"/"` registration on the same `ServeMux` when `NotFound` is called from a clone or concurrently.
+
+### Changed
+- Minimum Go version bumped to 1.24.
+- Benchmarks migrated to `b.Loop()` (Go 1.24 idiomatic form).
+- New benchmarks: `With`, `Mount`, `Route` multi-method, `Routes` introspection, parallel dispatch.
 
 ### CI
 - Added `go build` and `go vet` steps to the CI pipeline.

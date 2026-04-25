@@ -72,9 +72,7 @@ func (r *router) Routes() []RouteInfo {
 }
 
 func (r *router) NotFound(h http.HandlerFunc) {
-	if r.notFoundRegistered {
-		return
+	if r.notFoundRegistered.CompareAndSwap(false, true) {
+		r.mux.Handle("/", r.chain(h))
 	}
-	r.notFoundRegistered = true
-	r.mux.Handle("/", r.chain(h))
 }

@@ -67,6 +67,6 @@ func (r *router) clone() *router {
 		mux:                r.mux,
 		routes:             r.routes,
 		middlewares:        mws,
-		notFoundRegistered: r.notFoundRegistered,
+		notFoundRegistered: r.notFoundRegistered,  // shared pointer — prevents duplicate "/" registration across clones
 	}
 }

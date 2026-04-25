@@ -170,6 +170,55 @@ func TestRouter_NotFound(t *testing.T) {
 		r.NotFound(func(_ http.ResponseWriter, _ *http.Request) {})
 		r.NotFound(func(_ http.ResponseWriter, _ *http.Request) {}) // second call: silently ignored
 	})
+
+	t.Run("clone cannot register a second / on the same mux", func(t *testing.T) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				t.Errorf("NotFound from clone caused a panic: %v", rec)
+			}
+		}()
+
+		r := New()
+		r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusTeapot)
+		})
+
+		clone := r.With()
+		clone.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/missing", nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusTeapot {
+			t.Errorf("expected first handler to win, got %d", rec.Code)
+		}
+	})
+
+	t.Run("concurrent calls to NotFound do not panic or register twice", func(t *testing.T) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				t.Errorf("concurrent NotFound caused a panic: %v", rec)
+			}
+		}()
+
+		r := New()
+		done := make(chan struct{})
+
+		for range 10 {
+			go func() {
+				r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusTeapot)
+				})
+				done <- struct{}{}
+			}()
+		}
+		for range 10 {
+			<-done
+		}
+	})
 }
 
 func TestRouter_Routes(t *testing.T) {
