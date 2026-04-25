@@ -36,10 +36,10 @@ func TestParam(t *testing.T) {
 
 func TestRedirect(t *testing.T) {
 	tests := []struct {
-		name     string
-		to       string
-		code     int
-		method   string
+		name   string
+		to     string
+		code   int
+		method string
 	}{
 		{"301 on GET", "/new", http.StatusMovedPermanently, http.MethodGet},
 		{"302 on GET", "/new", http.StatusFound, http.MethodGet},
