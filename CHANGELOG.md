@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-04-25
+
 ### Fixed
 - `Compress` middleware now falls back to uncompressed response when `flate.NewWriter` fails instead of panicking.
+
+### CI
+- Added `go build` and `go vet` steps to the CI pipeline.
+- Extended branch triggers to `feat/**` and `refactor/**`.
 
 ## [0.7.0] - 2026-04-20
 
